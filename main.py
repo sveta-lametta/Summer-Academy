@@ -1,7 +1,8 @@
 # main.py
+import os
+import csv
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
-import csv
 
 # Стадии диалога
 NAME, AGE, GENDER, COUNTRY, Q1, Q2, Q3 = range(7)
@@ -58,8 +59,10 @@ async def get_q3(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data_list.append(context.user_data.copy())
 
     # Также можно сохранять в CSV
-    with open("responses.csv", "a", newline="") as f:
+    with open("responses.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["name", "age", "gender", "country", "q1", "q2", "q3"])
+        if f.tell() == 0:  # Если файл пустой, пишем заголовок
+            writer.writeheader()
         writer.writerow(context.user_data)
 
     await update.message.reply_text("Спасибо! Ты успешно прошёл тест 🌟")
@@ -70,7 +73,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def main():
-    app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        print("Ошибка: переменная окружения BOT_TOKEN не установлена")
+        return
+
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
