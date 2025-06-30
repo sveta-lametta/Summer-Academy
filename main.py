@@ -1,16 +1,32 @@
-# main.py
-import os
-import csv
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
+import csv
 
 # Стадии диалога
 NAME, AGE, GENDER, COUNTRY, Q1, Q2, Q3 = range(7)
 
 user_data_list = []
 
+reply_keyboard_q1 = [
+    ["Предпочитаю общаться с 1-2 людьми или быть один"],
+    ["Чувствую себя нормально и в одиночку, и в компании"],
+    ["Люблю быть среди людей, легко завожу знакомства"]
+]
+
+reply_keyboard_q2 = [
+    ["Читаю книгу или смотрю фильм дома"],
+    ["Встречаюсь с друзьями на прогулке"],
+    ["Ищу новые приключения и активности"]
+]
+
+reply_keyboard_q3 = [
+    ["Стараюсь наблюдать, пока не привыкну к группе"],
+    ["Стараюсь быстро завести пару знакомств"],
+    ["Активно включаюсь в разговор и знакомлюсь со всеми"]
+]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Давай начнём. Как тебя зовут?")
+    await update.message.reply_text("Привет! Давай начнём. Как тебя зовут? (имя, фамилия)")
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -32,7 +48,7 @@ async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["country"] = update.message.text
     await update.message.reply_text(
         "1. Как ты чувствуешь себя в компании других людей?",
-        reply_markup=ReplyKeyboardMarkup([["🐢", "🐍", "🦅"]], one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q1, one_time_keyboard=True, resize_keyboard=True)
     )
     return Q1
 
@@ -40,7 +56,7 @@ async def get_q1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q1"] = update.message.text
     await update.message.reply_text(
         "2. Как ты отдыхаешь?",
-        reply_markup=ReplyKeyboardMarkup([["🐢", "🐍", "🦅"]], one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q2, one_time_keyboard=True, resize_keyboard=True)
     )
     return Q2
 
@@ -48,20 +64,18 @@ async def get_q2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q2"] = update.message.text
     await update.message.reply_text(
         "3. Как ты ведёшь себя в новой группе?",
-        reply_markup=ReplyKeyboardMarkup([["🐢", "🐍", "🦅"]], one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q3, one_time_keyboard=True, resize_keyboard=True)
     )
     return Q3
 
 async def get_q3(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q3"] = update.message.text
 
-    # Сохраняем в глобальный список
     user_data_list.append(context.user_data.copy())
 
-    # Также можно сохранять в CSV
     with open("responses.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["name", "age", "gender", "country", "q1", "q2", "q3"])
-        if f.tell() == 0:  # Если файл пустой, пишем заголовок
+        if f.tell() == 0:
             writer.writeheader()
         writer.writerow(context.user_data)
 
@@ -73,12 +87,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def main():
-    token = os.getenv("BOT_TOKEN")
-    if not token:
-        print("Ошибка: переменная окружения BOT_TOKEN не установлена")
-        return
-
-    app = ApplicationBuilder().token(token).build()
+    app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
