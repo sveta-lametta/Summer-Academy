@@ -1,6 +1,14 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
+import os
 import csv
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+    ConversationHandler,
+)
 
 # Стадии диалога
 NAME, AGE, GENDER, COUNTRY, Q1, Q2, Q3 = range(7)
@@ -10,19 +18,19 @@ user_data_list = []
 reply_keyboard_q1 = [
     ["Предпочитаю общаться с 1-2 людьми или быть один"],
     ["Чувствую себя нормально и в одиночку, и в компании"],
-    ["Люблю быть среди людей, легко завожу знакомства"]
+    ["Люблю быть среди людей, легко завожу знакомства"],
 ]
 
 reply_keyboard_q2 = [
     ["Читаю книгу или смотрю фильм дома"],
     ["Встречаюсь с друзьями на прогулке"],
-    ["Ищу новые приключения и активности"]
+    ["Ищу новые приключения и активности"],
 ]
 
 reply_keyboard_q3 = [
     ["Стараюсь наблюдать, пока не привыкну к группе"],
     ["Стараюсь быстро завести пару знакомств"],
-    ["Активно включаюсь в разговор и знакомлюсь со всеми"]
+    ["Активно включаюсь в разговор и знакомлюсь со всеми"],
 ]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -48,7 +56,7 @@ async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["country"] = update.message.text
     await update.message.reply_text(
         "1. Как ты чувствуешь себя в компании других людей?",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q1, one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q1, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q1
 
@@ -56,7 +64,7 @@ async def get_q1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q1"] = update.message.text
     await update.message.reply_text(
         "2. Как ты отдыхаешь?",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q2, one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q2, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q2
 
@@ -64,7 +72,7 @@ async def get_q2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q2"] = update.message.text
     await update.message.reply_text(
         "3. Как ты ведёшь себя в новой группе?",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q3, one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard_q3, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q3
 
@@ -87,7 +95,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def main():
-    app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        print("Ошибка: не найден токен в переменной окружения BOT_TOKEN")
+        return
+
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
