@@ -79,13 +79,17 @@ async def get_q2(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_q3(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q3"] = update.message.text
 
-    user_data_list.append(context.user_data.copy())
-
-    with open("responses.csv", "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "age", "gender", "country", "q1", "q2", "q3"])
-        if f.tell() == 0:
-            writer.writeheader()
-        writer.writerow(context.user_data)
+    # Отправка данных в Google Sheets
+    values = [
+        context.user_data.get("name", ""),
+        context.user_data.get("age", ""),
+        context.user_data.get("gender", ""),
+        context.user_data.get("country", ""),
+        context.user_data.get("q1", ""),
+        context.user_data.get("q2", ""),
+        context.user_data.get("q3", ""),
+    ]
+    sheet.append_row(values)
 
     await update.message.reply_text("Спасибо! Ты успешно прошёл тест 🌟")
     return ConversationHandler.END
