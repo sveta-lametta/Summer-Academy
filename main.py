@@ -121,3 +121,22 @@ def main():
 
 if __name__ == "__main__":
     main()
+#дальше для работы с json
+import os
+import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+def get_sheet():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    
+    # Загружаем JSON из переменной окружения
+    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    creds_dict = json.loads(creds_json)
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+
+    # Открываем таблицу по имени
+    sheet = client.open("Название твоей таблицы").sheet1
+    return sheet
