@@ -1,5 +1,8 @@
+# Импорты
 import os
-import csv
+import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -10,11 +13,22 @@ from telegram.ext import (
     ConversationHandler,
 )
 
+# Настройка Google Sheets
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+
+# Загружаем JSON из переменной окружения
+creds_dict = json.loads(os.environ["GOOGLE_CREDS_JSON"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+client = gspread.authorize(creds)
+sheet = client.open("Bahratal_bot").sheet1  # Замени на актуальное название таблицы
+
 # Стадии диалога
 NAME, AGE, GENDER, COUNTRY, Q1, Q2, Q3 = range(7)
 
-user_data_list = []
-
+# Варианты ответов
 reply_keyboard_q1 = [
     ["Предпочитаю общаться с 1-2 людьми или быть один"],
     ["Чувствую себя нормально и в одиночку, и в компании"],
@@ -33,6 +47,7 @@ reply_keyboard_q3 = [
     ["Активно включаюсь в разговор и знакомлюсь со всеми"],
 ]
 
+# Обработчики состояний
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Давай начнём. Как тебя зовут? (имя, фамилия)")
     return NAME
@@ -98,6 +113,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Опрос прерван.")
     return ConversationHandler.END
 
+# Главная функция запуска бота
 def main():
     token = os.getenv("BOT_TOKEN")
     if not token:
@@ -125,22 +141,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#дальше для работы с json
-import os
-import json
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
-def get_sheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Загружаем JSON из переменной окружения
-    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    creds_dict = json.loads(creds_json)
-
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-
-    # Открываем таблицу по имени
-    sheet = client.open("Название твоей таблицы").sheet1
-    return sheet
