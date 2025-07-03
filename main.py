@@ -64,7 +64,7 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["gender"] = update.message.text
-    await update.message.reply_text("Из какой ты страны (сейчас)?")
+    await update.message.reply_text("В какой стране ты живешь сейчас?")
     return COUNTRY
 
 async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
