@@ -70,7 +70,7 @@ async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["country"] = update.message.text
     await update.message.reply_text(
-        "1. Как ты чувствуешь себя в компании других людей?",
+        "1. Как ты чувствуешь себя в компании других людей (выбери максимально подходящий вариант, не нужно писать свой)?",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard_q1, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q1
@@ -78,7 +78,7 @@ async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_q1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q1"] = update.message.text
     await update.message.reply_text(
-        "2. Как ты отдыхаешь?",
+        "2. Как ты отдыхаешь (выбери максимально подходящий вариант, не нужно писать свой)?",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard_q2, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q2
@@ -86,7 +86,7 @@ async def get_q1(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_q2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q2"] = update.message.text
     await update.message.reply_text(
-        "3. Как ты ведёшь себя в новой группе?",
+        "3. Как ты ведёшь себя в новой группе (выбери максимально подходящий вариант, не нужно писать свой)?",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard_q3, one_time_keyboard=True, resize_keyboard=True),
     )
     return Q3
