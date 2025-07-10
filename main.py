@@ -2,6 +2,7 @@
 import os
 import json
 import gspread
+import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
