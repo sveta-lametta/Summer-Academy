@@ -138,6 +138,54 @@ def main():
 
     app.add_handler(conv_handler)
     app.run_polling()
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.cluster import KMeans
+import pandas as pd
+import numpy as np
+
+def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
+    # Получение данных
+    sheet = gsheet_client.open(sheet_name).sheet1
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+
+    if len(df) < n_groups:
+        print("Недостаточно участников для формирования групп.")
+        return
+
+    # Очистка
+    df["age"] = pd.to_numeric(df["age"], errors="coerce")
+    df.dropna(subset=["age"], inplace=True)
+
+    # Кодирование категориальных
+    for col in ["gender", "country", "q1", "q2", "q3"]:
+        df[col] = df[col].astype(str)
+        df[col] = LabelEncoder().fit_transform(df[col])
+
+    features = ["age", "gender", "country", "q1", "q2", "q3"]
+    X = df[features]
+
+    # Масштабирование
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Кластеризация
+    kmeans = KMeans(n_clusters=n_groups, random_state=42, n_init='auto')
+    df["group"] = kmeans.fit_predict(X_scaled)
+
+    # Сохранение в новую вкладку
+    try:
+        sh = gsheet_client.open(sheet_name)
+        try:
+            sh.del_worksheet(sh.worksheet(target_sheet))
+        except:
+            pass
+        new_ws = sh.add_worksheet(title=target_sheet, rows="100", cols="20")
+        new_ws.update([df.columns.values.tolist()] + df.values.tolist())
+    except Exception as e:
+        print("Ошибка при сохранении групп:", e)
+
+    print("Группы успешно распределены и сохранены.")
 
 if __name__ == "__main__":
     main()
