@@ -207,7 +207,7 @@ print("=== Скрипт стартует ===")
 # Пример:
 # gsheet_client = ...
 
-distribute_to_groups(gsheet_client)
+distribute_to_groups(client)
 
 print("=== Скрипт завершён ===")
 
