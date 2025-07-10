@@ -144,15 +144,30 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
-
-import pandas as pd
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 def create_age_group(age, bins=[0, 18, 25, 35, 50, 65, 200], labels=None):
     if labels is None:
         labels = ["0-17", "18-24", "25-34", "35-49", "50-64", "65+"]
     return pd.cut(age, bins=bins, labels=labels, right=False)
+
+def rebalance_groups(df, n_groups=4, max_diff=1):
+    """
+    Попытка сбалансировать группы по размеру с допуском max_diff.
+    Перемещает случайных участников из больших групп в маленькие.
+    """
+    df = df.copy()
+    counts = df["group"].value_counts()
+    while counts.max() - counts.min() > max_diff:
+        group_max = counts.idxmax()
+        group_min = counts.idxmin()
+
+        candidates = df[df["group"] == group_max]
+        idx_to_move = candidates.sample(1).index[0]
+        df.at[idx_to_move, "group"] = group_min
+
+        counts = df["group"].value_counts()
+    return df
 
 def distribute_to_groups_balanced(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
     print("Старт функции distribute_to_groups_balanced")
@@ -167,7 +182,7 @@ def distribute_to_groups_balanced(gsheet_client, sheet_name="Bahratal_bot", targ
         print("Недостаточно участников для формирования групп.")
         return
 
-    # Обработка возрастa
+    # Обработка возраста
     df["age"] = pd.to_numeric(df["age"], errors="coerce")
     df.dropna(subset=["age"], inplace=True)
 
@@ -198,6 +213,9 @@ def distribute_to_groups_balanced(gsheet_client, sheet_name="Bahratal_bot", targ
         for i, idx in enumerate(indices):
             df.at[idx, "group"] = i % n_groups
 
+    # Балансируем группы по размеру (допустимая разница в 1 человека)
+    df = rebalance_groups(df, n_groups=n_groups, max_diff=1)
+
     # Удаляем вспомогательные колонки
     df.drop(columns=["age_group", "strata"], inplace=True)
 
@@ -220,6 +238,10 @@ def distribute_to_groups_balanced(gsheet_client, sheet_name="Bahratal_bot", targ
         print("Ошибка при сохранении групп:", e)
 
     print("Группы успешно распределены и сохранены.")
+
+
+    
+        
 
 distribute_to_groups_balanced(client)
 
