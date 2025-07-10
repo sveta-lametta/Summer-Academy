@@ -2,3 +2,4 @@ python-telegram-bot==20.3
 #установить нужные библиотеки для работы с Google Sheets
 gspread
 oauth2client
+scikit-learn
