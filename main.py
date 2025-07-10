@@ -163,9 +163,10 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
     print(f"После очистки по возрасту осталось {len(df)} записей")
 
     # Кодирование категориальных
-    for col in ["gender", "country", "q1", "q2", "q3"]:
-        df[col] = df[col].astype(str)
-        df[col] = LabelEncoder().fit_transform(df[col])
+       for col in ["gender", "country", "q1", "q2", "q3"]:
+    df[col] = df[col].fillna("Не указано")  # Заполняем пропуски значением по умолчанию
+    df[col] = df[col].astype(str)
+    df[col] = LabelEncoder().fit_transform(df[col])
 
     features = ["age", "gender", "country", "q1", "q2", "q3"]
     X = df[features]
