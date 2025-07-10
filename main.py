@@ -145,10 +145,13 @@ import pandas as pd
 import numpy as np
 
 def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
+    print("Старт функции distribute_to_groups")
+
     # Получение данных
     sheet = gsheet_client.open(sheet_name).sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
+    print(f"Получено {len(df)} записей")
 
     if len(df) < n_groups:
         print("Недостаточно участников для формирования групп.")
@@ -157,6 +160,7 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
     # Очистка
     df["age"] = pd.to_numeric(df["age"], errors="coerce")
     df.dropna(subset=["age"], inplace=True)
+    print(f"После очистки по возрасту осталось {len(df)} записей")
 
     # Кодирование категориальных
     for col in ["gender", "country", "q1", "q2", "q3"]:
@@ -178,15 +182,35 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
     try:
         sh = gsheet_client.open(sheet_name)
         try:
-            sh.del_worksheet(sh.worksheet(target_sheet))
-        except:
-            pass
+            worksheet_to_delete = sh.worksheet(target_sheet)
+            sh.del_worksheet(worksheet_to_delete)
+            print(f"Лист '{target_sheet}' удалён")
+        except Exception as e:
+            print(f"Лист '{target_sheet}' не найден для удаления: {e}")
+
         new_ws = sh.add_worksheet(title=target_sheet, rows="100", cols="20")
+        print(f"Лист '{target_sheet}' создан")
+
         new_ws.update([df.columns.values.tolist()] + df.values.tolist())
+        print(f"Данные записаны в лист '{target_sheet}'")
     except Exception as e:
         print("Ошибка при сохранении групп:", e)
 
     print("Группы успешно распределены и сохранены.")
+
+
+# -------- Явный вызов функции с логами --------
+
+print("=== Скрипт стартует ===")
+
+# Здесь должен быть код инициализации gsheet_client
+# Пример:
+# gsheet_client = ...
+
+distribute_to_groups(gsheet_client)
+
+print("=== Скрипт завершён ===")
+
 
 if __name__ == "__main__":
     main()
