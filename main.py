@@ -145,11 +145,19 @@ from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
 
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
-def distribute_to_equal_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
-    print("Старт функции distribute_to_equal_groups")
+def create_age_group(age, bins=[0, 18, 25, 35, 50, 65, 200], labels=None):
+    if labels is None:
+        labels = ["0-17", "18-24", "25-34", "35-49", "50-64", "65+"]
+    return pd.cut(age, bins=bins, labels=labels, right=False)
 
-    # Получение данных
+def distribute_to_groups_balanced(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
+    print("Старт функции distribute_to_groups_balanced")
+
+    # Получаем данные
     sheet = gsheet_client.open(sheet_name).sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
@@ -159,39 +167,39 @@ def distribute_to_equal_groups(gsheet_client, sheet_name="Bahratal_bot", target_
         print("Недостаточно участников для формирования групп.")
         return
 
-    # Обработка данных
-    for col in ["gender", "country", "q1", "q2", "q3"]:
-        df[col] = df[col].fillna("Не указано")
-        df[col] = df[col].astype(str)
-        df[col] = LabelEncoder().fit_transform(df[col])
-
+    # Обработка возрастa
     df["age"] = pd.to_numeric(df["age"], errors="coerce")
     df.dropna(subset=["age"], inplace=True)
 
-    features = ["age", "gender", "country", "q1", "q2", "q3"]
-    X = df[features]
+    # Заполняем пропуски в категориальных
+    for col in ["gender", "country", "q1", "q2", "q3"]:
+        df[col] = df[col].fillna("Не указано").astype(str)
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    # Кодируем ответы (если нужны)
+    for col in ["q1", "q2", "q3"]:
+        df[col] = LabelEncoder().fit_transform(df[col])
 
-    # PCA для 1D проекции
-    pca = PCA(n_components=1)
-    df["pca1"] = pca.fit_transform(X_scaled)
+    # Создаем возрастные группы
+    df["age_group"] = create_age_group(df["age"])
 
-    # Сортируем по главной компоненте
-    df_sorted = df.sort_values("pca1").reset_index(drop=True)
+    # Заполняем пропуски после категоризации возраста
+    df["age_group"] = df["age_group"].cat.add_categories("Не указано").fillna("Не указано")
 
-    # Делим на группы примерно равного размера
-    group_size = len(df_sorted) // n_groups
-    groups = []
-    for i in range(n_groups):
-        start = i * group_size
-        end = (i + 1) * group_size if i < n_groups - 1 else len(df_sorted)
-        group_df = df_sorted.iloc[start:end].copy()
-        group_df["group"] = i
-        groups.append(group_df)
+    # Создаем стратификационный ключ
+    df["strata"] = df["country"] + "_" + df["age_group"].astype(str) + "_" + df["gender"]
 
-    df_result = pd.concat(groups).sort_index()
+    # Инициализируем колонку с группами
+    df["group"] = -1
+
+    # Равномерно распределяем по группам в каждой страти
+    for strata_value, group_df in df.groupby("strata"):
+        indices = group_df.index.to_list()
+        np.random.shuffle(indices)
+        for i, idx in enumerate(indices):
+            df.at[idx, "group"] = i % n_groups
+
+    # Удаляем вспомогательные колонки
+    df.drop(columns=["age_group", "strata"], inplace=True)
 
     # Сохраняем в Google Sheets
     try:
@@ -203,19 +211,17 @@ def distribute_to_equal_groups(gsheet_client, sheet_name="Bahratal_bot", target_
         except Exception as e:
             print(f"Лист '{target_sheet}' не найден для удаления: {e}")
 
-        new_ws = sh.add_worksheet(title=target_sheet, rows=str(len(df_result) + 10), cols="20")
+        new_ws = sh.add_worksheet(title=target_sheet, rows=str(len(df) + 10), cols="20")
         print(f"Лист '{target_sheet}' создан")
 
-        new_ws.update([df_result.columns.values.tolist()] + df_result.values.tolist())
+        new_ws.update([df.columns.values.tolist()] + df.values.tolist())
         print(f"Данные записаны в лист '{target_sheet}'")
     except Exception as e:
         print("Ошибка при сохранении групп:", e)
 
     print("Группы успешно распределены и сохранены.")
 
-
-
-distribute_to_equal_groups(client)
+distribute_to_groups_balanced(client)
 
 print("=== Скрипт завершён ===")
 
