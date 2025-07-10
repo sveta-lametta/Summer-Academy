@@ -140,12 +140,14 @@ def main():
     app.add_handler(conv_handler)
     app.run_polling()
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
 
-def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
-    print("Старт функции distribute_to_groups")
+
+def distribute_to_equal_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet="Groups", n_groups=4):
+    print("Старт функции distribute_to_equal_groups")
 
     # Получение данных
     sheet = gsheet_client.open(sheet_name).sheet1
@@ -157,29 +159,41 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
         print("Недостаточно участников для формирования групп.")
         return
 
-    # Очистка
+    # Обработка данных
+    for col in ["gender", "country", "q1", "q2", "q3"]:
+        df[col] = df[col].fillna("Не указано")
+        df[col] = df[col].astype(str)
+        df[col] = LabelEncoder().fit_transform(df[col])
+
     df["age"] = pd.to_numeric(df["age"], errors="coerce")
     df.dropna(subset=["age"], inplace=True)
-    print(f"После очистки по возрасту осталось {len(df)} записей")
-
-    # Кодирование категориальных
-       for col in ["gender", "country", "q1", "q2", "q3"]:
-    df[col] = df[col].fillna("Не указано")  # Заполняем пропуски значением по умолчанию
-    df[col] = df[col].astype(str)
-    df[col] = LabelEncoder().fit_transform(df[col])
 
     features = ["age", "gender", "country", "q1", "q2", "q3"]
     X = df[features]
 
-    # Масштабирование
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Кластеризация
-    kmeans = KMeans(n_clusters=n_groups, random_state=42, n_init='auto')
-    df["group"] = kmeans.fit_predict(X_scaled)
+    # PCA для 1D проекции
+    pca = PCA(n_components=1)
+    df["pca1"] = pca.fit_transform(X_scaled)
 
-    # Сохранение в новую вкладку
+    # Сортируем по главной компоненте
+    df_sorted = df.sort_values("pca1").reset_index(drop=True)
+
+    # Делим на группы примерно равного размера
+    group_size = len(df_sorted) // n_groups
+    groups = []
+    for i in range(n_groups):
+        start = i * group_size
+        end = (i + 1) * group_size if i < n_groups - 1 else len(df_sorted)
+        group_df = df_sorted.iloc[start:end].copy()
+        group_df["group"] = i
+        groups.append(group_df)
+
+    df_result = pd.concat(groups).sort_index()
+
+    # Сохраняем в Google Sheets
     try:
         sh = gsheet_client.open(sheet_name)
         try:
@@ -189,10 +203,10 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
         except Exception as e:
             print(f"Лист '{target_sheet}' не найден для удаления: {e}")
 
-        new_ws = sh.add_worksheet(title=target_sheet, rows="100", cols="20")
+        new_ws = sh.add_worksheet(title=target_sheet, rows=str(len(df_result) + 10), cols="20")
         print(f"Лист '{target_sheet}' создан")
 
-        new_ws.update([df.columns.values.tolist()] + df.values.tolist())
+        new_ws.update([df_result.columns.values.tolist()] + df_result.values.tolist())
         print(f"Данные записаны в лист '{target_sheet}'")
     except Exception as e:
         print("Ошибка при сохранении групп:", e)
@@ -200,13 +214,6 @@ def distribute_to_groups(gsheet_client, sheet_name="Bahratal_bot", target_sheet=
     print("Группы успешно распределены и сохранены.")
 
 
-# -------- Явный вызов функции с логами --------
-
-print("=== Скрипт стартует ===")
-
-# Здесь должен быть код инициализации gsheet_client
-# Пример:
-# gsheet_client = ...
 
 distribute_to_groups(client)
 
