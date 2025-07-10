@@ -215,7 +215,7 @@ def distribute_to_equal_groups(gsheet_client, sheet_name="Bahratal_bot", target_
 
 
 
-distribute_to_groups(client)
+distribute_to_equal_groups(client)
 
 print("=== Скрипт завершён ===")
 
